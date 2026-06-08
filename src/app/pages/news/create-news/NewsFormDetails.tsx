@@ -194,6 +194,16 @@ const NewsFormDetails: React.FC = () => {
 
         if (response.status >= 200 && response.status < 300) {
           toast.success(`News Article ${id ? "updated" : "created"} successfully!`);
+          
+          // 🆕 Store creator mapping in localStorage (so that we know who created this news)
+          const newsId = response.data?.id; // API returns the created/updated news object
+          if (newsId && currentUser?.username) {
+            const newsCreators = JSON.parse(localStorage.getItem('news_creators') || '{}');
+            newsCreators[newsId] = currentUser.username;
+            localStorage.setItem('news_creators', JSON.stringify(newsCreators));
+            console.log(`Saved creator mapping: ${newsId} -> ${currentUser.username}`);
+          }
+          
           navigate("/news");
         } else {
           toast.error(`Operation failed!`);

@@ -104,6 +104,12 @@ const AllNews: React.FC = () => {
       const deletedIds = JSON.parse(localStorage.getItem('deleted_news_ids') || '[]');
       newsData = newsData?.filter((item: NewsItem) => !deletedIds.includes(item.id)) || [];
       
+      const newsCreators = JSON.parse(localStorage.getItem('news_creators') || '{}');
+      newsData = newsData.map((item: NewsItem) => ({
+        ...item,
+        createdBy: newsCreators[item.id] || null   // stored creator or null
+      }));
+
       setNews(newsData);
     } catch (error) {
       console.error(`Error fetching data from ${endpoint}:`, error);

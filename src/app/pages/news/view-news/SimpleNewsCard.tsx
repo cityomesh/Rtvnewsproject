@@ -14,24 +14,37 @@ interface SimpleNewsCardProps {
     findDateTime: (timestamp: string) => [string, string];
 }
 
-export const SimpleNewsCard: React.FC<SimpleNewsCardProps> = ({ newsItem, onReadMore, onEdit, onDelete, findDateTime }) => {
+export const SimpleNewsCard: React.FC<SimpleNewsCardProps> = ({ 
+    newsItem, 
+    onReadMore, 
+    onEdit, 
+    onDelete, 
+    findDateTime 
+}) => {
     const currentUser = getCurrentUser();
     const isAdminUser = currentUser?.role === 'ADMIN';
     const isOwner = currentUser?.username === (newsItem as any).createdBy;
     
-    // Show edit button for Admin OR Owner
+    // Edit button: Admin లేదా Owner కి మాత్రమే
     const showEditButton = isAdminUser || isOwner;
-    // Show delete button only for Admin
-    const showDeleteButton = isAdminUser;
     
-    const imageUrl = typeof newsItem.bannerImage === 'string' ? newsItem.bannerImage : newsItem.bannerImage?.path;
+    // 🆕 Delete button: అందరికీ కనిపిస్తుంది (UI లో)
+    // కానీ AllNews.tsx లోని handleDeleteAndClose ఫంక్షన్ నార్మల్ యూజర్ ని అడ్డుకుంటుంది
+    const showDeleteButton = true;   // <--- ఇదే మార్పు
+    
+    const imageUrl = typeof newsItem.bannerImage === 'string' 
+        ? newsItem.bannerImage 
+        : newsItem.bannerImage?.path;
     
     return (
         <div className="p-5 w-100">
             <div onClick={onReadMore} style={{ cursor: 'pointer' }}>
                 <div className="d-flex flex-column mb-3">
-                    <span className="text-gray-800 fs-6 fw-bold text-truncate" dangerouslySetInnerHTML={{ __html: newsItem.title }} />
-                    <span className="text-gray-500 fw-semibold">{findDateTime(newsItem.updatedAt)[0]} | {findDateTime(newsItem.updatedAt)[1]}</span>
+                    <span className="text-gray-800 fs-6 fw-bold text-truncate" 
+                          dangerouslySetInnerHTML={{ __html: newsItem.title }} />
+                    <span className="text-gray-500 fw-semibold">
+                        {findDateTime(newsItem.updatedAt)[0]} | {findDateTime(newsItem.updatedAt)[1]}
+                    </span>
                 </div>
                 <div className="mb-5">
                     <div 
@@ -54,9 +67,7 @@ export const SimpleNewsCard: React.FC<SimpleNewsCardProps> = ({ newsItem, onRead
                     {newsItem.tags.slice(0, 3).map((tag, index) => (
                         <Chip key={index} label={tag} variant="outlined" size="small" />
                     ))}
-                    {newsItem.tags.length > 3 && (
-                        <Chip label="..." variant="outlined" size="small" />
-                    )}
+                    {newsItem.tags.length > 3 && <Chip label="..." variant="outlined" size="small" />}
                 </div>
             )}
             <div className="d-flex align-items-center justify-content-center">
