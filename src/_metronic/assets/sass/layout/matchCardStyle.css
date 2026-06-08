@@ -1,0 +1,21 @@
+.match-container {
+    display: flex;
+    justify-content: space-between; /* Aligns children to each side */
+    align-items: start; /* Aligns children to the top */
+    width: 100%; /* Ensures the container takes full width */
+    padding: 10px;
+}
+
+.match-container > div {
+    flex: 1; /* Each child will take equal space */
+}
+
+.score{
+    display:flex;
+    flex-direction: row;
+    justify-content: space-around;
+    /* justify-content: space-between; */
+    padding-top: 60px;
+    padding-right:5px;
+    align-items: center;
+}

@@ -1,0 +1,39 @@
+.light-container {
+    background-color: '#f9f9f9',
+    
+}
+
+.question-container, .accordion-button:not(.collapsed), .accordion-button {
+    background-color: aliceblue;
+}
+
+.form-control.form-control-solid {
+    border-color: #DFDDDD;
+}
+
+.option {
+    background: #F2F2F2;
+}
+
+
+.flexible-quiz-container {
+  height: calc(100vh - 350px); /* adjust based on header/footer height */
+  display: flex;
+  flex-direction: column;
+  
+}
+
+.quiz-form-scrollable {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+
+.option-block {
+  background-color: #f9f9fb;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}

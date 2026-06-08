@@ -1,0 +1,5 @@
+.quill-editor-container .ql-container {
+    min-height: 200px; /* Set the minimum height of the editor */
+    height: auto;      /* Allow it to expand automatically */
+    overflow-y: hidden; /* Prevent vertical scrolling */
+}

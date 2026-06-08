@@ -1,0 +1,70 @@
+name: Deploy React to EC2
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Determine Environment
+        id: env_select
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            echo "env_name=prod" >> $GITHUB_OUTPUT
+            echo "target_dir=/home/ubuntu/dashboard_prod" >> $GITHUB_OUTPUT
+            echo "service=dashboard_prod" >> $GITHUB_OUTPUT
+            echo "VITE_APP_SERVER_URL=https://api.rawtvapp.com/api" > .env
+          else
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "target_dir=/home/ubuntu/dashboard_dev" >> $GITHUB_OUTPUT
+            echo "service=dashboard_dev" >> $GITHUB_OUTPUT
+            echo "VITE_APP_SERVER_URL=https://api.rawtvapp.com/api" > .env
+          fi
+
+      - name: Install Dependencies & Build
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+
+      - name: Clean & Prepare Target Directory
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            echo "Cleaning target directory: ${{ steps.env_select.outputs.target_dir }}"
+            rm -rf ${{ steps.env_select.outputs.target_dir }}/*
+            mkdir -p ${{ steps.env_select.outputs.target_dir }}
+
+      - name: Copy Build Files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: dist/*
+          target: ${{ steps.env_select.outputs.target_dir }}
+
+      - name: Restart Service
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            sudo systemctl restart ${{ steps.env_select.outputs.service }}

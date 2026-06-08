@@ -1,0 +1,41 @@
+.shimmer-card-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.shimmer-card {
+    height: 320px; /* Height of the element */
+    background: linear-gradient(314deg, #c2bdbd 25%, #c0c0c0 50%, #e0e0e0 75%);
+    animation: flow-bg 1.5s infinite;
+    background-size: 200% 100%;
+    margin: 20px;
+  }
+
+  .shimmer-column-card-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+
+  .shimmer-column-card {
+    width: 95%; /* Width of the element */
+    height: 150px; /* Height of the element */
+    background: linear-gradient(314deg, #c2bdbd 25%, #c0c0c0 50%, #e0e0e0 75%);
+    animation: flow-bg 1.5s infinite;
+    background-size: 200% 100%;
+    border-radius: 6px;
+    margin: 20px;
+  }
+
+  
+  
+  @keyframes flow-bg {
+    0% {
+        background-position: 0% 0% /* Start position: Gradient is off-screen on the right */
+      }
+      100% {
+        background-position: 100% 100% /* End position: Gradient flows off-screen on the left */
+      }
+  }
+
+

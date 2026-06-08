@@ -1,0 +1,156 @@
+.card-container {
+    /* width: 300px !important; */
+    height: 320px !important;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+  }
+  
+  .card-image {
+    position: relative;
+    width: 100%;
+    height: 80%;
+  }
+  
+  .video-container {
+    display: flex;
+
+  }
+
+  .card-container-img {
+    width: 100%;
+    height: 200px !important;
+    /* display: block; */
+    border-radius: 16px 16px 0px 0px !important;
+  }
+
+  .card-content {
+    padding: 12px;
+    
+  }
+
+  .card-title {
+    padding-top: 10px;
+  }
+
+  .error-message {
+    color: red;
+    margin-top: 0.25rem;
+  }
+  
+  /* START: MODAL STYLE UPDATES */
+  .custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+  }
+  
+  .custom-modal {
+    background: white;
+    border-radius: 8px;
+    width: auto;
+    min-width: 400px;
+    max-width: 600px; /* Increased max-width */
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+
+  .custom-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .custom-modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  
+  .custom-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 1;
+    color: #000;
+    opacity: 0.4;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .custom-modal-close:hover {
+    opacity: 1;
+  }
+  
+  .custom-modal-content {
+    padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  .custom-modal-footer {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+    background-color: #f9f9f9;
+  }
+
+  .custom-modal-footer p {
+      margin: 0.5rem 0 0 0;
+      word-break: break-word;
+  }
+
+  .edit-delete-icon {
+    position: absolute;
+    bottom: 4%;
+    border: 1px solid black;
+    padding: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    backdrop-filter: blur(3.5px);
+    background: rgba(0, 0, 0, 0.25);
+    text-shadow: 0px 0px 2px #000;
+    font-size: 1rem;
+    color: #1b84ff;
+    cursor: pointer;
+}
+
+.flexible-reel-container {
+  height: calc(100vh - 210px);
+  display: flex;
+  flex-direction: column;
+}
+
+
+.form.d-flex.flex-column.h-100 {
+  height: 100%;
+}
+
+.reel-form-scrollable {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.card-footer-button {
+  position: sticky;
+  bottom: 20px;
+  background-color: white;
+  z-index: 10;
+}

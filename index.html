@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Rtv" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700" />
+  <title>RTV</title>
+  <link rel="Rtv icon" href="/media/logos/rtv_logo.png" />
+  <link rel="stylesheet" id="layout-styles-anchor" href="/splash-screen.css" />
+</head>
+
+<body id="kt_body" class="page-loading">
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <!--begin::Theme mode setup on page load-->
+  <script>
+    let themeMode = 'system'
+
+    if (localStorage.getItem('kt_theme_mode_value')) {
+      themeMode = localStorage.getItem('kt_theme_mode_value')
+    }
+
+    if (themeMode === 'system') {
+      themeMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+
+    document.documentElement.setAttribute('data-bs-theme', themeMode)
+  </script>
+  <!--end::Theme mode setup on page load-->
+
+  <div id="root"></div>
+
+  <!--begin::Loading markup-->
+  <div id="splash-screen" class="splash-screen">
+    <img src="/media/logos/rtv_logo.png" class="dark-logo" alt="RTV dark logo" style="height: 100px !important;"  />
+    <img src="/media/logos/rtv_logo.png" class="light-logo" alt="RTV light logo" style="height: 100px !important;"  />
+    <span>Loading ...</span>
+  </div>
+  <!--end::Loading markup-->
+
+  <div id="root-modals"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
