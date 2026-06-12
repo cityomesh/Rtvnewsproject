@@ -112,7 +112,7 @@ const Login: React.FC = () => {
         return;
       }
 
-      // ---------- STEP 2: Normal user (localStorage) ----------
+      // ---------- STEP 2: Normal user (localStorage) with STATUS CHECK ----------
       const storedUsers = localStorage.getItem('app_users');
       const users = storedUsers ? JSON.parse(storedUsers) : [];
       const foundUser = users.find(
@@ -120,7 +120,17 @@ const Login: React.FC = () => {
       );
 
       if (foundUser) {
-        console.log('Normal user found:', foundUser);
+        // ✅ CHECK USER STATUS
+        const userStatus = foundUser.status || 'ACTIVE'; // default to ACTIVE if no status field
+        if (userStatus !== 'ACTIVE') {
+          console.log(`Login blocked: User ${foundUser.phoneNumber} is ${userStatus}`);
+          toast.error('Your account is deactivated. Please contact admin.');
+          setErrors({ password: 'Account deactivated' });
+          setSubmitting(false);
+          return;
+        }
+
+        console.log('Normal user found and ACTIVE:', foundUser);
         const adminToken = localStorage.getItem('admin_token');
         if (!adminToken) {
           toast.error('Please login as admin (rocky) at least once first.');
@@ -227,7 +237,8 @@ const Login: React.FC = () => {
 
         <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
           <Typography variant="caption" display="block" color="textSecondary">
-            <strong>Note:</strong> Admin (rocky) must login first. Then created users can login and create news.
+            <strong>Note:</strong> Admin (rocky) must login first. Then created users can login and create news. <br />
+            <strong>Deactivated accounts cannot login.</strong>
           </Typography>
         </Box>
       </Paper>

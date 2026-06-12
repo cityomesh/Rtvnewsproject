@@ -18,6 +18,7 @@ import { createTheme, ThemeProvider } from "@mui/material";
 import { grey_02 } from "../../common/colors";
 import './style.css';
 import CancelButton from "../../common/cancelButton";
+import { getCurrentUser } from "../../modules/auth/session.ts";
 
 const AddPoll = () => {
   const { id } = useParams();
@@ -26,6 +27,8 @@ const AddPoll = () => {
   const [loading, setLoading] = useState(false);
   const classes = useStyles();
   const themeMode = useThemeMode();
+
+  const [sendNotification, setSendNotification] = useState(false);
 
   const [systemMode, setSystemMode] = useState(
     window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -168,8 +171,23 @@ const AddPoll = () => {
               await createOrUpdatePoll({
                 values,
                 id: id,
-                onSuccess: () => {
+                notify: sendNotification,
+                onSuccess: (responseData?: any) => {
                   toast.success("Poll saved!");
+                  
+                  // ✅ Store poll creator in localStorage (similar to news, quiz, post)
+                  const currentUser = getCurrentUser();
+                  const creator = currentUser?.username || 'unknown';
+                  const pollId = responseData?.id || (id ? id : responseData?.id);
+                  
+                  if (pollId && !id) {  // Only for new poll (not edit)
+                    const existing = localStorage.getItem('poll_creators');
+                    const creators = existing ? JSON.parse(existing) : {};
+                    creators[pollId] = creator;
+                    localStorage.setItem('poll_creators', JSON.stringify(creators));
+                    console.log(`Stored poll creator: ${pollId} -> ${creator}`);
+                  }
+                  
                   navigate("/polls");
                 },
                 onError: (e) => toast.error(e),
@@ -261,55 +279,28 @@ const AddPoll = () => {
                     <FieldArray name="question.options">
                     {({ remove, push }) => (
                       <div className="accordion" id="questionsAccordion">
-                        {/* Label + Add Button Row */}
-                        {/* <div className="row align-items-center mb-3">
-                          <div className="row w-100 d-flex " style={{ background: 'red' }}>
-                            <label className="col-lg-4 col-form-label required fw-bold fs-6">
+                        <div className="row align-items-center mb-3">
+                          <div className="d-flex justify-content-between align-items-center w-100">
+                            <label className="col-form-label required fw-bold fs-6 mb-0">
                               Options
                             </label>
-                            <div className="col-lg-4">
-                              <button
-                                disabled={optionCount >= 5}
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => push(initOption)}
-                              >
-                                Add Option
-                              </button>
+                            <button
+                              disabled={optionCount >= 5}
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => push(initOption)}
+                            >
+                              Add Option
+                            </button>
+                          </div>
+                          <div className="fv-plugins-message-container mt-2">
+                            <div className="fv-help-block">
+                              {typeof formik.errors.question?.options !== "object" && (
+                                <ErrorMessage name="question.options" />
+                              )}
                             </div>
                           </div>
-                            <div className="col-lg-4 fv-plugins-message-container">
-                              <div className="fv-help-block">
-                                {typeof formik.errors.question?.options !== "object" && (
-                                  <ErrorMessage name="question.options" />
-                                )}
-                              </div>
-                            </div>
-                          </div> */}
-
-                          <div className="row align-items-center mb-3">
-                            <div className="d-flex justify-content-between align-items-center w-100">
-                              <label className="col-form-label required fw-bold fs-6 mb-0">
-                                Options
-                              </label>
-                              <button
-                                disabled={optionCount >= 5}
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => push(initOption)}
-                              >
-                                Add Option
-                              </button>
-                            </div>
-                            <div className="fv-plugins-message-container mt-2">
-                              <div className="fv-help-block">
-                                {typeof formik.errors.question?.options !== "object" && (
-                                  <ErrorMessage name="question.options" />
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        
+                        </div>
 
                         {/* Option Inputs */}
                         {formik.values.question.options.map((option, index) => (
@@ -319,14 +310,6 @@ const AddPoll = () => {
                             </label>
 
                             <div className="col-lg-7 d-flex align-items-center gap-3">
-                              {/* <Field
-                                type="text"
-                                name={`question.options[${index}].label`}
-                                className="form-control form-control-lg form-control-solid"
-                                placeholder="Enter a label"
-                                maxLength={maxCharForTextInput}
-                              /> */}
-
                               <Field
                                 type="text"
                                 name={`question.options[${index}].label`}
@@ -339,16 +322,6 @@ const AddPoll = () => {
                                   {formik.values.question.options[index].label.length}/{maxCharForTextInput}
                                 </small>
                               </div>
-
-                              {/* <button
-                                type="button"
-                                className="btn btn-link text-danger p-0"
-                                onClick={() => remove(index)}
-                                aria-label={`Delete option ${index + 1}`}
-                                style={{ marginLeft: '0.5rem' }}
-                              >
-                                <KTIcon iconName="trash" className="fs-2" />
-                              </button> */}
 
                               <button
                                 type="button"
@@ -379,6 +352,25 @@ const AddPoll = () => {
                     )}
                   </FieldArray>
 
+                    {/* Send Notification Checkbox */}
+                    <div className="row mb-6">
+                      <div className="col-lg-4"></div>
+                      <div className="col-lg-8">
+                        <label className="d-flex align-items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={sendNotification}
+                            onChange={(e) => setSendNotification(e.target.checked)}
+                            disabled={!!id}
+                          />
+                          <span className="fw-bold">Send Notifications</span>
+                        </label>
+                        <small className="text-muted d-block">
+                          Check this to send push notifications to users when the poll is {id ? "updated" : "published"}.
+                        </small>
+                      </div>
+                    </div>
+
                   </div>
 
                   <div className="card-footer d-flex justify-content-end py-6 px-9">
@@ -403,4 +395,3 @@ const AddPoll = () => {
 };
 
 export default AddPoll;
-

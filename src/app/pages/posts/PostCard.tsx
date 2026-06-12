@@ -18,17 +18,18 @@ import client from "../../modules/service/network";
 import { toast } from "react-toastify";
 import VideoModal from "../../common/modals/VideoModal";
 import { getInstagramEmbedUrl, getTwitterEmbedUrl, getYouTubeVideoId, containsFacebookUrl } from "../../../utils/GetYoutubeLink";
+import { isAdmin } from "../../modules/auth/session.ts";
 
 import MuiModal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { relative } from "path";
 
 export interface PostData {
   post: any;
   pageIndex: number;
   refreshData: () => void;
+  showEdit?: boolean;   // edit permission (creator or admin)
 }
 
 const getYouTubeEmbedUrl = (url: string): string | null => {
@@ -51,13 +52,15 @@ const getFirstNWords = (html: string, n: number) => {
   return text.split(" ").slice(0, n).join(" ");
 };
 
-const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData }) => {
+const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData, showEdit = true }) => {
   const navigate = useNavigate();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState<boolean>(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const adminUser = isAdmin();   // ✅ true if logged-in user is ADMIN
 
   const toggleVideoModal = () => setIsVideoModalOpen(!isVideoModalOpen);
   const toggleImageModal = () => setIsImageModalOpen(!isImageModalOpen);
@@ -276,46 +279,40 @@ const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData }) => {
         data={post}
       />
 
-      {/* Image Modal (Replaced Dialog with MuiModal) */}
+      {/* Image Modal */}
       <MuiModal open={isImageModalOpen} onClose={toggleImageModal}>
-  <Box sx={modalStyle}>
-    <IconButton
-      onClick={toggleImageModal}
-      sx={{
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        zIndex: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-      }}
-    >
-      <CloseIcon />
-    </IconButton>
-
-    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'auto' }}>
-      {/* Image Section */}
-      <Box sx={{ width: '100%', height: 'auto', maxHeight: '60vh', overflow: 'hidden' }}>
-        <img
-          src={displayImage}
-          alt={stripHtml(post?.title)}
-          style={{
-            width: '100%',
-            height: 'auto',
-            objectFit: 'contain', // Ensures the image scales correctly
-          }}
-        />
-      </Box>
-
-      {/* Content Section (Title + Description) */}
-      <Box sx={{ padding: 2, overflowY: 'auto', height: 'auto', marginTop: 2 }}>
-        <Typography variant="h5" gutterBottom dangerouslySetInnerHTML={{ __html: post?.title }} />
-        <Typography variant="body1" dangerouslySetInnerHTML={{ __html: post?.description }} />
-      </Box>
-    </Box>
-  </Box>
-</MuiModal>
-
-
+        <Box sx={modalStyle}>
+          <IconButton
+            onClick={toggleImageModal}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', height: 'auto' }}>
+            <Box sx={{ width: '100%', height: 'auto', maxHeight: '60vh', overflow: 'hidden' }}>
+              <img
+                src={displayImage}
+                alt={stripHtml(post?.title)}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
+            <Box sx={{ padding: 2, overflowY: 'auto', height: 'auto', marginTop: 2 }}>
+              <Typography variant="h5" gutterBottom dangerouslySetInnerHTML={{ __html: post?.title }} />
+              <Typography variant="body1" dangerouslySetInnerHTML={{ __html: post?.description }} />
+            </Box>
+          </Box>
+        </Box>
+      </MuiModal>
 
       {/* Post Card */}
       <Card
@@ -364,24 +361,30 @@ const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData }) => {
             <Typography variant="caption">Likes: {post?.insights?.noOfLikes || 0}</Typography>
           </Stack>
           <div className="d-flex gap-2" style={{ marginLeft: "auto" }}>
-            <a
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleDeleteModal();
-              }}
-              className="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
-            >
-              <KTIcon iconName="trash" className="fs-3 text-danger" />
-            </a>
-            <a
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/post/create/${post?.id}`);
-              }}
-              className="btn btn-icon btn-bg-light btn-active-color-primary btn-sm"
-            >
-              <KTIcon iconName="pencil" className="fs-3 text-primary" />
-            </a>
+            {/* ✅ Delete button shown only for admin users */}
+            {adminUser && (
+              <a
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleDeleteModal();
+                }}
+                className="btn btn-icon btn-bg-light btn-active-color-primary btn-sm me-1"
+              >
+                <KTIcon iconName="trash" className="fs-3 text-danger" />
+              </a>
+            )}
+            {/* Edit button shown only if showEdit is true (creator or admin) */}
+            {showEdit && (
+              <a
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/post/create/${post?.id}`);
+                }}
+                className="btn btn-icon btn-bg-light btn-active-color-primary btn-sm"
+              >
+                <KTIcon iconName="pencil" className="fs-3 text-primary" />
+              </a>
+            )}
           </div>
         </CardActions>
       </Card>

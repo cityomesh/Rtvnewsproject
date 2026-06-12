@@ -1,3 +1,4 @@
+// post.tsx
 import * as Yup from "yup";
 
 export interface IPost {
@@ -42,6 +43,7 @@ export const initPostVal: IPost = {
 
 export const maxCharForTextInput = 100;
 export const maxCharForDescription = 300;
+
 export const createPostSchema = Yup.object().shape({
   title: Yup.string()
     .required("Title is required")
@@ -72,19 +74,13 @@ export const createPostSchema = Yup.object().shape({
     .shape({
       externalFile: Yup.object()
         .shape({
-          url: Yup.string()
-            .nullable(),
+          url: Yup.string().nullable(),
         })
         .nullable(),
-
       internalFile: Yup.object()
         .shape({
-          video: Yup.string()
-            .url("Video URL must be valid")
-            .nullable(),
-          thumbnail: Yup.string()
-            .url("Thumbnail URL must be valid")
-            .nullable(),
+          video: Yup.string().url("Video URL must be valid").nullable(),
+          thumbnail: Yup.string().url("Thumbnail URL must be valid").nullable(),
         })
         .nullable(),
     })
@@ -97,7 +93,6 @@ export const createPostSchema = Yup.object().shape({
         if (bannerImage) return true;
         const internalVideo = video?.internalFile?.video;
         const externalUrl = video?.externalFile?.url;
-
         return Boolean(internalVideo || externalUrl);
       }
     ),

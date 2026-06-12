@@ -5,28 +5,28 @@ import { toast } from 'react-toastify';
 export interface IReels {
     title: string,
     video: {
-    internalFile: {
-      video: string | null;
-      thumbnail: string | null;
-    } | null;
-    externalFile: {
-      url: string | null;
-    } | null;
-  };
+        internalFile: {
+            video: string | null;
+            thumbnail: string | null;
+        } | null;
+        externalFile: {
+            url: string | null;
+        } | null;
+    };
 }
 
 export const initReelsVal: IReels = {
     title: "",
     video: {
-      internalFile: {
-        video: null,
-        thumbnail: null
-      },
-      externalFile: {
-        url: null
-      }
+        internalFile: {
+            video: null,
+            thumbnail: null
+        },
+        externalFile: {
+            url: null
+        }
     }
-}
+};
 
 export const createReelsSchema = Yup.object().shape({
     title: Yup.string()
@@ -48,7 +48,7 @@ export const createReelsSchema = Yup.object().shape({
             'video-source-required',
             'Either an uploaded video or an external URL is required',
             (value) => {
-                if (!value) return false;  // If no video or external file object
+                if (!value) return false;
                 const hasInternalVideo = !!value.internalFile?.video;
                 const hasExternalUrl = !!value.externalFile?.url;
                 return hasInternalVideo || hasExternalUrl;
@@ -56,43 +56,47 @@ export const createReelsSchema = Yup.object().shape({
         )
 });
 
-
+// ✅ createOrUpdateReels with notify parameter – USED BY AddReels
 export async function createOrUpdateReels({
     values,
     id,
+    notify,               // "true" or "false"
     onSuccess,
     onError,
     onEnd,
-  }: {
+}: {
     values: IReels;
     id?: string;
+    notify?: string;
     onSuccess: () => void;
     onError: (message: string) => void;
     onEnd?: () => void;
-  }) {
+}) {
     try {
-      let response;
-      if (id) {
-        response = await client.put(`/reels/${id}`, values);
-      } else {
-        response = await client.post("/reels/admin", values);
-      }
-  
-      if (response.status >= 200 && response.status < 300) {
-        onSuccess();
-        return response.data;
-      } else if (response.status === 401 || response.status === 403) {
-        toast.error("Please login");
-        window.location.reload();
-      } else {
-        onError("Something went wrong, please try again!");
-      }
+        const queryParam = notify ? `?notify=${notify}` : "";
+        let response;
+        if (id) {
+            // Update existing reel
+            response = await client.put(`/reels/${id}${queryParam}`, values);
+        } else {
+            // Create new reel (your original admin endpoint)
+            response = await client.post(`/reels/admin${queryParam}`, values);
+        }
+
+        if (response.status >= 200 && response.status < 300) {
+            onSuccess();
+            return response.data;
+        } else if (response.status === 401 || response.status === 403) {
+            toast.error("Please login");
+            window.location.reload();
+        } else {
+            onError("Something went wrong, please try again!");
+        }
     } catch (error) {
-      console.log("error in saving ",error);
-      onError("Something went wrong, please try again!");
+        console.log("error in saving ", error);
+        onError("Something went wrong, please try again!");
     } finally {
-      if (onEnd) onEnd();
+        if (onEnd) onEnd();
     }
     return null;
-  }
-  
+}

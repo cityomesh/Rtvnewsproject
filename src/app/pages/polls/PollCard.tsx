@@ -4,17 +4,20 @@ import { Modal } from "../../../_metronic/partials/widgets/modal/Modal";
 import { useEffect, useMemo, useState } from "react";
 import { useThemeMode } from "../../../_metronic/partials/layout/theme-mode/ThemeModeProvider";
 import { Typography } from "@mui/material";
+import { isAdmin } from "../../modules/auth/session.ts";
 
 interface PollCardProps {
   poll: any;
   deletePoll: (id: string) => Promise<void>;
+  showEdit?: boolean;   // edit permission (creator or admin)
 }
 
-const PollCard: React.FC<PollCardProps> = ({ poll, deletePoll }) => {
+const PollCard: React.FC<PollCardProps> = ({ poll, deletePoll, showEdit = true }) => {
   const navigate = useNavigate();
   const id = poll.id;
   const [openModal, setOpenModal] = useState(false);
   const themeMode = useThemeMode();
+  const adminUser = isAdmin();   // ✅ true if admin
 
   const [systemMode, setSystemMode] = useState<boolean | null>(null);
 
@@ -101,18 +104,24 @@ const PollCard: React.FC<PollCardProps> = ({ poll, deletePoll }) => {
             )}
           </div>
           <div className="d-flex justify-content-center">
-            <a
-              onClick={() => navigate(`/poll/create/${id}`)}
-              className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline me-6"
-            >
-              <KTIcon iconName="pencil" className="fs-2 text-primary" />
-            </a>
-            <a
-              onClick={toggleModal}
-              className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline"
-            >
-              <KTIcon iconName="trash" className="fs-2 text-danger" />
-            </a>
+            {/* Edit button – shown only if user has edit permission */}
+            {showEdit && (
+              <a
+                onClick={() => navigate(`/poll/create/${id}`)}
+                className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline me-6"
+              >
+                <KTIcon iconName="pencil" className="fs-2 text-primary" />
+              </a>
+            )}
+            {/* Delete button – shown only for admin users */}
+            {adminUser && (
+              <a
+                onClick={toggleModal}
+                className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline"
+              >
+                <KTIcon iconName="trash" className="fs-2 text-danger" />
+              </a>
+            )}
           </div>
         </div>
       </div>

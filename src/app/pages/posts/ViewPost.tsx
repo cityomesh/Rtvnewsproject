@@ -12,7 +12,7 @@ import { MultipleDeleteModal } from "../../../_metronic/partials/widgets/modal/M
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import VideoModal from "../../common/modals/VideoModal";
 import PostCard from "./PostCard";
-
+import { isAdmin, getCurrentUser } from "../../modules/auth/session.ts";
 
 export interface PostData {
     id: string,
@@ -40,7 +40,6 @@ export interface PostData {
 
 const PAGE_SIZE = 10;
 
-
 const ViewPost: React.FC = () => {
   const navigate = useNavigate();
   const [loader, setLoader] = useState<boolean>(true);
@@ -54,8 +53,19 @@ const ViewPost: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [activeVideoPost, setActiveVideoPost] = useState<PostData | null>(null);
-
+  const [postCreators, setPostCreators] = useState<Record<string, string>>({});
   
+  const adminUser = isAdmin();
+  const currentUser = getCurrentUser();
+  const currentUsername = currentUser?.username || '';
+
+  useEffect(() => {
+    const stored = localStorage.getItem('post_creators');
+    if (stored) {
+      setPostCreators(JSON.parse(stored));
+    }
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
@@ -81,21 +91,19 @@ const ViewPost: React.FC = () => {
     fetchPosts(pageIndex, debouncedSearch);
   }, [pageIndex, debouncedSearch]);
 
-
   const handleVideoModal = (post: PostData | null) => {
     setActiveVideoPost(post);
   };
 
-    const [openModal, setOpenModal] = useState(false);
-    const toggleModal = ()=>{
-        setOpenModal(!openModal);
-    }
+  const [openModal, setOpenModal] = useState(false);
+  const toggleModal = ()=>{
+    setOpenModal(!openModal);
+  }
 
-    
-    const [openMultipleDeleteModal, setMultipleDeleteModal] = useState(false);
-    const toggleMultipleDeleteModal = ()=>{
-      setMultipleDeleteModal(!openMultipleDeleteModal);
-}
+  const [openMultipleDeleteModal, setMultipleDeleteModal] = useState(false);
+  const toggleMultipleDeleteModal = ()=>{
+    setMultipleDeleteModal(!openMultipleDeleteModal);
+  }
 
   const handleDelete = async ()=> {
     try{
@@ -120,11 +128,10 @@ const ViewPost: React.FC = () => {
       }
       return updatedSelectedIds;
     });
-
   };
 
   // Delete selected items via API
-const deleteSelectedItems = async () => {
+  const deleteSelectedItems = async () => {
     if (selectedIds.size === 0) return;
 
     try {
@@ -150,10 +157,16 @@ const deleteSelectedItems = async () => {
 
     const handleSubmit = () => {
         console.log("handle delete")
-        // event.preventDefault();
         deleteSelectedItems();
         setShowSelect(!showSelect)
         toggleMultipleDeleteModal()
+    };
+    
+    // Helper to determine if current user can edit a post
+    const canEdit = (postId: string): boolean => {
+      if (adminUser) return true;
+      const creator = postCreators[postId];
+      return creator === currentUsername;
     };
 
   return (
@@ -178,7 +191,6 @@ const deleteSelectedItems = async () => {
             isOpen={openMultipleDeleteModal}
             toggleDialog={toggleMultipleDeleteModal}
             action2={{event: toggleMultipleDeleteModal, label: 'Cancel'}}
-            // action1={{event: handleSubmit, label: "Delete"}}
             action1={{event: handleSubmit, label: "Delete"}}
             title="Selected Posts"
           />}
@@ -190,44 +202,6 @@ const deleteSelectedItems = async () => {
             </div>
           ) : (
             <>
-
-              {/* <div className="mb-8 d-flex" style={{background: ''}}>
-                {showSelect ? (
-                <>
-                <button
-                  type="button"
-                  onClick={toggleMultipleDeleteModal} // Add onClick to trigger deletion
-                  disabled={selectedIds.size === 0}
-                  className="btn btn-warning btn-sm mx-2"
-                >
-                    Delete {selectedIds.size > 0 && (
-                        <>
-                          ({selectedIds.size} {selectedIds.size > 1 ? "Posts" : "Post "})
-                        </>
-                    )}
-                </button>
-                <button 
-                type="button"
-                onClick={() => {
-                  setShowSelect(!showSelect);
-                  setSelectedIds(new Set());
-                }}
-                className="btn btn-primary btn-sm mx-4">
-                  Cancel
-                </button>
-                </>
-                ) : (
-                <button
-                  type="button"
-                  onClick={()=>setShowSelect(!showSelect)} // Add onClick to trigger deletion
-
-                  className="btn btn-warning btn-sm mx-1"
-                >
-                    Select
-                </button>
-                )} */}
-                
-            {/* </div> */}
             <div className="row pb-12">
             {post && post.map((element)=>(
               <div key={element.id} className="col-12 col-sm-6 col-md-4 col-xl-4 d-flex align-items-start mb-6">
@@ -238,12 +212,13 @@ const deleteSelectedItems = async () => {
                     className="mx-4"
                 />)}
                 <div className="w-100">
-                    <PostCard post={element}
-                    pageIndex={pageIndex}
-                    refreshData={() => fetchPosts(pageIndex, debouncedSearch)} />
-                  </div>
-                
-                
+                    <PostCard 
+                      post={element}
+                      pageIndex={pageIndex}
+                      refreshData={() => fetchPosts(pageIndex, debouncedSearch)}
+                      showEdit={canEdit(element.id)}   // ✅ pass edit permission
+                    />
+                  </div> 
               </div>
           
         ))}
@@ -256,9 +231,6 @@ const deleteSelectedItems = async () => {
             onPrevious={() => setPageIndex(pageIndex - 1)}
             onNext={() => setPageIndex(pageIndex + 1)}
         />
-
-          
-       
     </>
   );
 };

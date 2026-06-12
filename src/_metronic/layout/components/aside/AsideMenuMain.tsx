@@ -3,10 +3,15 @@ import { AsideMenuItemWithSub } from "./AsideMenuItemWithSub";
 import { AsideMenuItem } from "./AsideMenuItem";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { getCurrentUser } from "../../../../app/modules/auth/session";
 
 export function AsideMenuMain() {
   const intl = useIntl();
   const [toggle, setToggle] = useState<string>("");
+  
+  // 👇 Get current user and check if admin
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   return (
     <div
@@ -14,8 +19,8 @@ export function AsideMenuMain() {
         display: "flex", 
         flexDirection: "column", 
         alignItems: "start",
-        fontSize: "16px",  // Increased font size
-        fontWeight: "500"   // Added medium weight
+        fontSize: "16px",
+        fontWeight: "500"
       }}
     >
       <Link to="/dashboard" style={{ width: "100%", textDecoration: "none" }}>
@@ -30,23 +35,6 @@ export function AsideMenuMain() {
           noSubs={true}
         />
       </Link>
-      
-
-      {/* <AsideMenuItemWithSub icon='black-right' to="../pages/updates/create" title="Updates" toggle={toggle} setToggle={setToggle}>
-        <AsideMenuItem
-          to="/updates/create"
-          title="Create Updates"
-          hasBullet={true}
-          toggle={toggle} 
-          setToggle={setToggle}
-        />
-        <AsideMenuItem to="/updates" title="Updates" hasBullet={true} toggle={toggle} setToggle={setToggle} />
-      </AsideMenuItemWithSub> */}
-
-      {/* <AsideMenuItemWithSub to="/team" icon='black-right' title="Teams"  fontIcon='bi-layers' toggle={toggle} setToggle={setToggle}>
-        <AsideMenuItem to='/team/create' title='Create Team' hasBullet={true} toggle={toggle} setToggle={setToggle} />
-        <AsideMenuItem to='/team' title='Teams' hasBullet={true} toggle={toggle} setToggle={setToggle} />
-      </AsideMenuItemWithSub> */}
 
       <AsideMenuItemWithSub 
         icon='black-right' 
@@ -63,27 +51,6 @@ export function AsideMenuMain() {
         />
         <AsideMenuItem to="/news" title="Latest News" hasBullet={true} setToggle={setToggle} />
       </AsideMenuItemWithSub>
-
-      {/* <AsideMenuItemWithSub icon='black-right' to="../pages/blogs/create" title="Blogs" toggle={toggle} setToggle={setToggle}>
-        <AsideMenuItem
-          to="/blogs/create"
-          title="Create Blogs"
-          hasBullet={true}
-          toggle={toggle} 
-          setToggle={setToggle}
-        />
-        <AsideMenuItem to="/blogs" title="Blogs" hasBullet={true} toggle={toggle} setToggle={setToggle} />
-      </AsideMenuItemWithSub> */}
-      {/* <AsideMenuItemWithSub icon='black-right' to="../pages/tutorials/create" title="Football Tutorials" toggle={toggle} setToggle={setToggle}>
-        <AsideMenuItem
-          to="/tutorials/create"
-          title="Create Tutorials"
-          hasBullet={true}
-          toggle={toggle} 
-          setToggle={setToggle}
-        />
-        <AsideMenuItem to="/tutorials" title="Football Tutorials" hasBullet={true} toggle={toggle} setToggle={setToggle} />
-      </AsideMenuItemWithSub> */}
 
       <AsideMenuItemWithSub 
         icon='black-right' 
@@ -113,7 +80,6 @@ export function AsideMenuMain() {
         toggle={toggle}
         setToggle={setToggle}
       >
-        
         <AsideMenuItemWithSub
           to="/social/reels"
           title="Reels"
@@ -182,10 +148,10 @@ export function AsideMenuMain() {
             setToggle={setToggle}
           />
         </AsideMenuItemWithSub>
-
       </AsideMenuItemWithSub>
 
-
+      {/* 👇 User Management - visible only for admin */}
+      {isAdmin && (
         <AsideMenuItemWithSub
           icon='black-right'
           to="../pages/user-management"
@@ -200,6 +166,7 @@ export function AsideMenuMain() {
             setToggle={setToggle}
           />
         </AsideMenuItemWithSub>
+      )}
     </div>
   );
 }

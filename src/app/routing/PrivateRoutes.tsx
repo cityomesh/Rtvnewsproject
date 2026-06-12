@@ -15,7 +15,7 @@ import Login from "../modules/auth/components/Login"
 import CreateQuiz from "../pages/quiz/AddQuiz"
 import ViewAllQuizes from "../pages/quiz/ViewAllQuiz"
 import AddNotification from '../pages/notification/AddNotification'
-import { isAuthenticated } from '../modules/auth/session'
+import { isAuthenticated, getCurrentUser } from '../modules/auth/session'
 import { AddReels } from '../pages/reels/AddReels'
 import AllReels from '../pages/reels/AllReels'
 import { ViewPost } from '../pages/posts/ViewPost'
@@ -27,6 +27,17 @@ import CreateNews from '../pages/news/create'
 import UserManagementPage from '../modules/user-management/UserManagementPage'
 
 const ProfilePage = lazy(() => import('../modules/profile/ProfilePage'))
+
+// AdminGuard component - only allows admin users
+const AdminGuard: FC<{ children: JSX.Element }> = ({ children }) => {
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === 'ADMIN';
+  
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
 
 // Protected Route Component - FIXED
 const ProtectedRoute: FC = () => {
@@ -71,8 +82,15 @@ const PrivateRoutes = () => {
           <Route path='builder' element={<BuilderPageWrapper />} />
           <Route path='menu-test' element={<MenuTestPage />} />
 
-          {/* User Management */}
-          <Route path="/user-management" element={<UserManagementPage />} />
+          {/* User Management - Only Admin can access */}
+          <Route 
+            path="/user-management" 
+            element={
+              <AdminGuard>
+                <UserManagementPage />
+              </AdminGuard>
+            } 
+          />
 
           {/* Updates */}
           <Route path="/updates/create/">
