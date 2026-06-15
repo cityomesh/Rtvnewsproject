@@ -41,6 +41,7 @@ import { SimpleNewsCard } from "./SimpleNewsCard";
 import { NewsListItem } from "./NewsListItem";
 import { getCurrentUser } from '../../../modules/auth/session';
 import { getYouTubeVideoId, getInstagramEmbedUrl, getTwitterEmbedUrl, getFacebookEmbedReel, getIframeEmbedCode} from "../../../../utils/GetYoutubeLink";
+import { moveToTrash, isInTrash } from "../../../modules/service/trashService";   // ✅ import trash service
 
 const modalStyle = {
   position: "absolute" as const,
@@ -100,14 +101,13 @@ const AllNews: React.FC = () => {
       const response = await client.get(endpoint, { params });
       let newsData = isSearching ? response.data.content : response.data;
       
-      // Filter out locally deleted news
-      const deletedIds = JSON.parse(localStorage.getItem('deleted_news_ids') || '[]');
-      newsData = newsData?.filter((item: NewsItem) => !deletedIds.includes(item.id)) || [];
+      // ✅ Filter out items that are in trash (so they don't appear in normal list)
+      newsData = newsData?.filter((item: NewsItem) => !isInTrash(item.id, 'news')) || [];
       
       const newsCreators = JSON.parse(localStorage.getItem('news_creators') || '{}');
       newsData = newsData.map((item: NewsItem) => ({
         ...item,
-        createdBy: newsCreators[item.id] || null   // stored creator or null
+        createdBy: newsCreators[item.id] || null
       }));
 
       setNews(newsData);
@@ -171,9 +171,8 @@ const AllNews: React.FC = () => {
     }
   };
 
-  // FIXED: Delete that actually works on localhost
+  // ✅ Modified delete: API delete + move to Trash (localStorage)
   const handleDeleteAndClose = async (idToDelete: string) => {
-    // Check if user is admin
     const currentUser = getCurrentUser();
     const isAdminUser = currentUser?.role === 'ADMIN';
     
@@ -184,33 +183,36 @@ const AllNews: React.FC = () => {
     }
     
     const deletedItem = news?.find(item => item.id === idToDelete);
-    const itemTitle = deletedItem?.title?.substring(0, 50) || 'News article';
+    if (!deletedItem) return;
+    
+    const itemTitle = deletedItem.title?.substring(0, 50) || 'News article';
     
     setLoading(true);
     
-    // Remove from UI immediately
-    setNews(prev => prev?.filter(item => item.id !== idToDelete) || []);
-    toast.success(`"${itemTitle}" deleted successfully!`);
+    // 1. Move to Trash (localStorage)
+    moveToTrash({
+      id: idToDelete,
+      type: 'news',
+      data: deletedItem,
+    }, currentUser.username);
     
-    // Store deleted ID in localStorage to persist across refreshes
-    const deletedIds = JSON.parse(localStorage.getItem('deleted_news_ids') || '[]');
-    if (!deletedIds.includes(idToDelete)) {
-      deletedIds.push(idToDelete);
-      localStorage.setItem('deleted_news_ids', JSON.stringify(deletedIds));
-    }
-    
-    // Try API delete in background
+    // 2. Delete from server (API)
     try {
       await client.delete(`news/${idToDelete}`);
       console.log('API delete successful for:', idToDelete);
     } catch (error: any) {
-      console.log('API delete failed - item removed from UI only');
+      console.error('API delete failed:', error);
+      // Even if API fails, we still keep it in trash.
     }
+    
+    // 3. Remove from UI
+    setNews(prev => prev?.filter(item => item.id !== idToDelete) || []);
+    toast.success(`"${itemTitle}" deleted and moved to trash.`);
     
     setLoading(false);
     setOpenDeleteModal(false);
     
-    // Refresh data to sync with server
+    // 4. Refresh data to sync (optional)
     await fetchData(queryParams.page, searchQuery);
   };
 
@@ -230,6 +232,7 @@ const AllNews: React.FC = () => {
   }
 
   const renderModalContent = () => {
+    // (unchanged, keep as is)
     if (!selectedNews) return null;
 
     const hasStoryCards = selectedNews.storyCards && selectedNews.storyCards.length > 0;

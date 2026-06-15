@@ -25,6 +25,12 @@ import AddPoll from '../pages/polls/AddPoll'
 import News  from '../pages/news/news'
 import CreateNews from '../pages/news/create'
 import UserManagementPage from '../modules/user-management/UserManagementPage'
+import ViewDrafts from '../../app/pages/news/create-news/ViewDrafts'
+import ViewQuizDrafts from '../pages/quiz/ViewQuizDrafts';   // import
+import ViewReelDrafts from '../pages/reels/ViewReelDrafts';
+import ViewPostDrafts from '../pages/posts/ViewPostDrafts';
+import ViewPollDrafts from '../pages/polls/ViewPollDrafts';
+import TrashPage from '../modules/trash/TrashPage';
 
 const ProfilePage = lazy(() => import('../modules/profile/ProfilePage'))
 
@@ -46,9 +52,7 @@ const ProtectedRoute: FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check if token exists in localStorage
         const token = localStorage.getItem('token');
-        // Fix: explicitly convert to boolean
         const hasToken: boolean = !!(token && token.length > 0);
         
         console.log('ProtectedRoute - Token exists:', hasToken);
@@ -91,6 +95,7 @@ const PrivateRoutes = () => {
               </AdminGuard>
             } 
           />
+        <Route path="/trash" element={<TrashPage />} />
 
           {/* Updates */}
           <Route path="/updates/create/">
@@ -101,6 +106,8 @@ const PrivateRoutes = () => {
 
           {/* Quiz */}
           <Route path="/quiz" element={<ViewAllQuizes />} />
+          <Route path="/quiz/drafts" element={<ViewQuizDrafts />} />   // ✅ new line
+
           <Route path="/quiz/create/">
             <Route index element={<CreateQuiz />} />
             <Route path=":id" element={<CreateQuiz />} />
@@ -109,6 +116,7 @@ const PrivateRoutes = () => {
           {/* Reels */}
           <Route path="/reels" element={<AllReels status="REVIEW_COMPLETE"/>}/>
           <Route path='/reels/review' element={<AllReels status="UNDER_REVIEW"/>}/>
+          <Route path="/reels/drafts" element={<ViewReelDrafts />} />   // ✅ new
           <Route path="/reels/create">
             <Route index element={<AddReels />} />
             <Route path=":id" element={<AddReels />} />
@@ -116,6 +124,8 @@ const PrivateRoutes = () => {
 
           {/* Post  */}      
           <Route path="/posts" element={<ViewPost />} />
+          <Route path="/post/drafts" element={<ViewPostDrafts />} />   // ✅ new
+
           <Route path="/post/create/">
             <Route index element={<AddPost />} />
             <Route path=":id" element={<AddPost />} />
@@ -123,6 +133,7 @@ const PrivateRoutes = () => {
 
           {/* Poll */}
           <Route path='/polls' element={<ViewAllPoll/>} />
+          <Route path="/poll/drafts" element={<ViewPollDrafts />} />   // ✅ new line
           <Route path="/poll/create/">
             <Route index element={<AddPoll />} />
             <Route path=":id" element={<AddPoll />} />
@@ -134,6 +145,9 @@ const PrivateRoutes = () => {
             <Route index element={<CreateNews />} />
             <Route path=":id" element={<CreateNews />} />
           </Route>
+
+          {/* ✅ News Drafts - Added here */}
+          <Route path="/news/drafts" element={<ViewDrafts />} />
 
           {/* Notifications */}
           <Route path="/notification/">

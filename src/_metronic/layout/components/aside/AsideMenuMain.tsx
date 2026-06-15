@@ -49,7 +49,16 @@ export function AsideMenuMain() {
           hasBullet={true}
           setToggle={setToggle}
         />
-        <AsideMenuItem to="/news" title="Latest News" hasBullet={true} setToggle={setToggle} />
+        <AsideMenuItem to="/news"
+         title="Latest News"
+          hasBullet={true}
+          setToggle={setToggle} />
+       <AsideMenuItem 
+          to="/news/drafts"
+          title="Drafts"
+          hasBullet={true}
+          setToggle={setToggle}
+        />
       </AsideMenuItemWithSub>
 
       <AsideMenuItemWithSub 
@@ -70,6 +79,12 @@ export function AsideMenuMain() {
           title="Quiz" 
           hasBullet={true} 
           setToggle={setToggle} 
+        />
+        <AsideMenuItem 
+          to="/quiz/drafts"
+          title="Drafts"
+          hasBullet={true}
+          setToggle={setToggle}
         />
       </AsideMenuItemWithSub>
 
@@ -105,6 +120,10 @@ export function AsideMenuMain() {
             hasBullet={true}
             setToggle={setToggle}
           />
+          <AsideMenuItem to="/reels/drafts"
+           title="Drafts"
+           hasBullet={true}
+           setToggle={setToggle} />
         </AsideMenuItemWithSub>
 
         <AsideMenuItemWithSub
@@ -126,6 +145,11 @@ export function AsideMenuMain() {
             hasBullet={true}
             setToggle={setToggle}
           />
+          <AsideMenuItem to="/post/drafts"
+           title="Drafts"
+           hasBullet={true}
+           setToggle={setToggle} />
+
         </AsideMenuItemWithSub>
 
         <AsideMenuItemWithSub
@@ -147,7 +171,12 @@ export function AsideMenuMain() {
             hasBullet={true}
             setToggle={setToggle}
           />
+          <AsideMenuItem to="/poll/drafts"
+           title="Drafts"
+           hasBullet={true}
+           setToggle={setToggle} />
         </AsideMenuItemWithSub>
+        
       </AsideMenuItemWithSub>
 
       {/* 👇 User Management - visible only for admin */}
@@ -167,6 +196,14 @@ export function AsideMenuMain() {
           />
         </AsideMenuItemWithSub>
       )}
+
+      {/* ✅ Trash Menu Item - visible to all logged-in users */}
+      <AsideMenuItem
+        to="/trash"
+        title="Trash"
+        hasBullet={true}
+        setToggle={setToggle}
+      />
     </div>
   );
 }

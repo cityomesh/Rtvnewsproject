@@ -1,3 +1,4 @@
+
 import { FormEvent, useEffect, useState } from "react";
 import { PageTitle } from "../../../_metronic/layout/core";
 import PollCard from "./PollCard";
@@ -12,6 +13,7 @@ import { toast } from "react-toastify";
 import Shimmer from "../../common/shimmer/Shimmer";
 import { MultipleDeleteModal } from "../../../_metronic/partials/widgets/modal/MultipleDeleteModal";
 import { isAdmin, getCurrentUser } from "../../modules/auth/session.ts";
+import { moveToTrash, isInTrash } from "../../modules/service/trashService";   // ✅ trash service
 
 const ViewAllPoll = ()=>{
     const [polls, setPolls] = useState<any[] | null>([]);
@@ -52,7 +54,10 @@ const ViewAllPoll = ()=>{
 
     useEffect(() => {
         if (pollsData) {
-            setPolls(pollsData || []);
+            // ✅ Filter out polls that are in trash
+            let filtered = pollsData || [];
+            filtered = filtered.filter((poll: any) => !isInTrash(poll.id, 'poll'));
+            setPolls(filtered);
             setLoader(false);
         }
         if (pollsError) {
@@ -70,30 +75,8 @@ const ViewAllPoll = ()=>{
         setMultipleDeleteModal(!openMultipleDeleteModal);
     }
 
-    const deletePoll = async (id: string)=>{
-        try{
-            const response = await client.delete(`poll/${id}`);
-            console.log(response);
-            
-            // Remove from poll_creators mapping
-            const updatedCreators = { ...pollCreators };
-            delete updatedCreators[id];
-            localStorage.setItem('poll_creators', JSON.stringify(updatedCreators));
-            setPollCreators(updatedCreators);
-            
-            mutate(`/polls/feed?page=${pageIndex}&size=10`);
-            toast.success("Poll deleted Successfully");
-        }
-        catch(err){
-            console.log(err);
-            enqueueSnackbar('Failed to delete Poll', {
-                anchorOrigin: {
-                    vertical: 'top',
-                    horizontal: 'center',
-                },
-            });
-        }
-    }
+    // ❌ Remove old deletePoll function – now handled inside PollCard
+    // const deletePoll = async (id: string)=>{ ... }
 
     const handleSelect = (id: string) => {
         setSelectedIds(prevSelectedIds => {
@@ -107,10 +90,27 @@ const ViewAllPoll = ()=>{
         });
     };
 
-    // Delete selected items via API
+    // ✅ Batch delete – move each to trash, then API batch delete
     const deleteSelectedItems = async () => {
         if (selectedIds.size === 0) return;
 
+        const currentUserObj = getCurrentUser();
+        if (!currentUserObj) {
+            toast.error("User not logged in");
+            return;
+        }
+
+        // 1. Move each selected poll to trash (localStorage)
+        const pollsToDelete = polls?.filter(p => selectedIds.has(p.id)) || [];
+        for (const poll of pollsToDelete) {
+            moveToTrash({
+                id: poll.id,
+                type: 'poll',
+                data: poll,
+            }, currentUserObj.username);
+        }
+
+        // 2. Call batch delete API
         try {
             const response = await client.delete('/polls/delete', {
                 headers: {
@@ -120,17 +120,15 @@ const ViewAllPoll = ()=>{
             });
 
             if (response.status === 200) {
-                // Update localStorage poll_creators
+                // Update poll_creators mapping
                 const updatedCreators = { ...pollCreators };
-                selectedIds.forEach(id => {
-                    delete updatedCreators[id];
-                });
+                selectedIds.forEach(id => { delete updatedCreators[id]; });
                 localStorage.setItem('poll_creators', JSON.stringify(updatedCreators));
                 setPollCreators(updatedCreators);
                 
                 setPolls((prevPosts) => prevPosts ? prevPosts.filter((item) => !selectedIds.has(item.id)) : null);
                 setSelectedIds(new Set());
-                toast.success("Selected items deleted successfully");
+                toast.success("Selected polls moved to trash and deleted from server!");
                 mutate(`/polls?page=${pageIndex}&size=20&sort=createdAt,desc`);
             } else {
                 throw new Error("Failed to delete selected items");
@@ -200,8 +198,20 @@ const ViewAllPoll = ()=>{
                             <div className="w-100">
                                 <PollCard 
                                     poll={poll} 
-                                    deletePoll={deletePoll} 
-                                    showEdit={canEdit(poll.id)}   // ✅ pass edit permission
+                                    // ✅ pass deletePoll as a function that moves to trash + API delete
+                                    deletePoll={async (id: string) => {
+                                        const currentUserObj = getCurrentUser();
+                                        if (!currentUserObj) return;
+                                        moveToTrash({ id, type: 'poll', data: poll }, currentUserObj.username);
+                                        try {
+                                            await client.delete(`poll/${id}`);
+                                            toast.success("Poll moved to trash and deleted from server!");
+                                            mutate(`/polls/feed?page=${pageIndex}&size=10`);
+                                        } catch(err) {
+                                            toast.error("Failed to delete poll");
+                                        }
+                                    }}
+                                    showEdit={canEdit(poll.id)}
                                 />
                             </div>
                         </div>

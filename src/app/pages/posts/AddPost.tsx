@@ -367,7 +367,7 @@
 
 
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState , useRef} from "react";
 import { useFormik } from "formik";
 import { toast } from "react-toastify";
@@ -383,11 +383,17 @@ import { uploadSizeLimit } from "../../../utils/UploadSizeLimit";
 import CancelButton from "../../common/cancelButton";
 // MUI components for notification checkbox
 import { Typography, FormControlLabel, Checkbox } from "@mui/material";
-import { getCurrentUser } from  "../../modules/auth/session.ts";
+import { getCurrentUser } from "../../modules/auth/session.ts";
+
+const DRAFTS_STORAGE_KEY = "post_drafts";
 
 export const AddPost = () => {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const draftId = queryParams.get("draftId");
+
   const quillRef = useRef<ReactQuill>(null);
 
   const [loading, setLoading] = useState(false);
@@ -399,7 +405,61 @@ export const AddPost = () => {
   const [sendNotification, setSendNotification] = useState(false);
   const [initData, setInitData] = useState<IPost>(initPostVal);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isDraftMode, setIsDraftMode] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
+  // ========== API post editing (id) ==========
+  const { post: apiPost, isLoading: apiLoading } = usePost(id ?? "", () => {});
+  useEffect(() => {
+    if (id && apiPost) {
+      setInitData(apiPost);
+      setIsDraftMode(false);
+      setCurrentDraftId(null);
+      if (apiPost.video?.internalFile?.video || apiPost.video?.externalFile?.url) {
+        setSelectedMediaType("video");
+        setSelectedVideoInputType(apiPost.video.internalFile?.video ? "internal" : "external");
+      } else {
+        setSelectedMediaType("image");
+        setSelectedVideoInputType(null);
+      }
+      setIsInitialLoad(false);
+    }
+  }, [id, apiPost]);
+
+  // ========== Loading a draft ==========
+  useEffect(() => {
+    if (!id && draftId) {
+      const stored = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      if (stored) {
+        const drafts: any[] = JSON.parse(stored);
+        const draft = drafts.find((d) => d.id === draftId);
+        if (draft) {
+          setInitData(draft);
+          setIsDraftMode(true);
+          setCurrentDraftId(draft.id);
+          if (draft.video?.internalFile?.video || draft.video?.externalFile?.url) {
+            setSelectedMediaType("video");
+            setSelectedVideoInputType(draft.video.internalFile?.video ? "internal" : "external");
+          } else {
+            setSelectedMediaType("image");
+            setSelectedVideoInputType(null);
+          }
+        } else {
+          setInitData(initPostVal);
+          setIsDraftMode(false);
+          setCurrentDraftId(null);
+          setSelectedMediaType("image");
+        }
+      }
+    } else if (!id && !draftId) {
+      setInitData(initPostVal);
+      setIsDraftMode(false);
+      setCurrentDraftId(null);
+      setSelectedMediaType("image");
+    }
+  }, [id, draftId]);
+
+  // Quill editor setup (unchanged)
   useEffect(() => {
     if (quillRef.current) {
       const editor = quillRef.current.getEditor();
@@ -429,29 +489,87 @@ export const AddPost = () => {
     }
   }, []);
 
-  useEffect(() => {
-    setIsInitialLoad(true);
-  }, [id]);
+  // ========== Save draft to localStorage ==========
+  const savePostDraftLocally = (values: IPost) => {
+    try {
+      let existingDrafts = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      let drafts: any[] = existingDrafts ? JSON.parse(existingDrafts) : [];
 
-  usePost(id ?? "", (e) => {
-    if (isInitialLoad) {
-      if (id) {
-        setInitData(e);
-        if (e.video?.internalFile?.video || e.video?.externalFile?.url) {
-          setSelectedMediaType("video");
-          setSelectedVideoInputType(e.video.internalFile?.video ? "internal" : "external");
+      if (currentDraftId) {
+        const index = drafts.findIndex((d) => d.id === currentDraftId);
+        if (index !== -1) {
+          drafts[index] = {
+            ...drafts[index],
+            ...values,
+            updatedAt: new Date().toISOString(),
+          };
+          toast.success("Draft updated successfully!");
         } else {
-          setSelectedMediaType("image");
-          setSelectedVideoInputType(null);
+          setCurrentDraftId(null);
         }
-      } else {
-        setInitData(initPostVal);
-        setSelectedMediaType("image");
-        setSelectedVideoInputType(null);
       }
-      setIsInitialLoad(false);
+
+      if (!currentDraftId) {
+        const newDraftId = `post_draft_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const newDraft = {
+          id: newDraftId,
+          ...values,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        drafts.push(newDraft);
+        toast.success("Draft saved locally!");
+        setCurrentDraftId(newDraftId);
+      }
+
+      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+      navigate("/post/drafts");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save post draft.");
     }
-  });
+  };
+
+  // ========== Publish post (API call) and delete draft if any ==========
+  const publishPost = async (values: IPost, draftIdToDelete?: string | null) => {
+    setLoading(true);
+    const sanitizedValues = { ...values, title: stripHTMLTags(values.title) };
+    const notifyParam = sendNotification ? "true" : "false";
+
+    await createOrUpdatePost({
+      values: sanitizedValues,
+      id,
+      notify: notifyParam,
+      onSuccess: (responseData?: any) => {
+        toast.success("Post saved!");
+        const currentUser = getCurrentUser();
+        const creator = currentUser?.username || 'unknown';
+        let postId = id;
+        if (!id && responseData?.id) {
+          postId = responseData.id;
+        }
+        if (postId) {
+          const existing = localStorage.getItem('post_creators');
+          const creators = existing ? JSON.parse(existing) : {};
+          creators[postId] = creator;
+          localStorage.setItem('post_creators', JSON.stringify(creators));
+          console.log(`Stored post creator: ${postId} -> ${creator}`);
+        }
+        // If this was a draft, delete the draft from localStorage
+        if (draftIdToDelete) {
+          const stored = localStorage.getItem(DRAFTS_STORAGE_KEY);
+          if (stored) {
+            const drafts = JSON.parse(stored);
+            const updated = drafts.filter((d: any) => d.id !== draftIdToDelete);
+            localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(updated));
+          }
+        }
+        navigate("/posts");
+      },
+      onError: (err) => toast.error(err),
+      onEnd: () => setLoading(false),
+    });
+  };
 
   const stripHTMLTags = (text: any) => {
     return text ? text.replace(/<\/?[^>]+(>|$)/g, "") : "";
@@ -462,39 +580,18 @@ export const AddPost = () => {
     validationSchema: createPostSchema,
     validateOnMount: true,
     enableReinitialize: true,
-    onSubmit: async (values) => {
-      setLoading(true);
-      const sanitizedValues = { ...values, title: stripHTMLTags(values.title) };
-      const notifyParam = sendNotification ? "true" : "false";
-
-      await createOrUpdatePost({
-        values: sanitizedValues,
-        id,
-        notify: notifyParam,
-        onSuccess: (responseData?: any) => {
-          toast.success("Post saved!");
-          
-          // ✅ Store post creator in localStorage (similar to news, quiz)
-          const currentUser = getCurrentUser();
-          const creator = currentUser?.username || 'unknown';
-          const postId = responseData?.id || (id ? id : responseData?.id);
-          
-          if (postId && !id) {  // Only for new post (not edit)
-            const existing = localStorage.getItem('post_creators');
-            const creators = existing ? JSON.parse(existing) : {};
-            creators[postId] = creator;
-            localStorage.setItem('post_creators', JSON.stringify(creators));
-            console.log(`Stored post creator: ${postId} -> ${creator}`);
-          }
-          
-          navigate("/posts");
-        },
-        onError: (err) => toast.error(err),
-        onEnd: () => setLoading(false),
-      });
+    onSubmit: (values) => {
+      if (isDraftMode && currentDraftId) {
+        publishPost(values, currentDraftId);
+      } else if (id) {
+        publishPost(values, null);
+      } else {
+        publishPost(values, null);
+      }
     },
   });
 
+  // Handlers (unchanged)
   const handleMediaTypeChange = (type: "image" | "video") => {
     setSelectedMediaType(type);
     if (type === "image") {
@@ -562,17 +659,21 @@ export const AddPost = () => {
     setDescriptionCharCount(charCount);
   }, [formik.values.description]);
 
+  // ========== Render ==========
   return (
     <>
       <div className="card mb-5 mb-xl-10 flexible-post-container">
         <div className="card-header border-0 cursor-pointer">
           <div className="card-title m-0">
-            <h3 className="fw-bolder m-0">{id ? "Edit Post" : "Add Post"}</h3>
+            <h3 className="fw-bolder m-0">
+              {id ? "Edit Post" : isDraftMode ? "Edit Post Draft" : "Add Post"}
+            </h3>
           </div>
         </div>
 
         <form onSubmit={formik.handleSubmit} noValidate className="form d-flex flex-column h-100">
           <div className="card-body border-top p-9 post-form-scrollable">
+            {/* Title */}
             <div className="row mb-6">
               <label className="col-lg-4 col-form-label required fw-bold fs-6">
                 Title ({stripHTMLTags(formik.values.title).length}/{maxCharForTextInput})
@@ -591,14 +692,20 @@ export const AddPost = () => {
               </div>
             </div>
 
+            {/* Media Type */}
             <div className="row mb-6">
               <label className="col-lg-4 col-form-label fw-bold fs-6">Select Media Type</label>
               <div className="col-lg-8 d-flex gap-3">
-                <label><input type="radio" name="mediaType" value="image" checked={selectedMediaType === "image"} onChange={() => handleMediaTypeChange("image")}/> Banner Image</label>
-                <label><input type="radio" name="mediaType" value="video" checked={selectedMediaType === "video"} onChange={() => handleMediaTypeChange("video")}/> Video</label>
+                <label>
+                  <input type="radio" name="mediaType" value="image" checked={selectedMediaType === "image"} onChange={() => handleMediaTypeChange("image")}/> Banner Image
+                </label>
+                <label>
+                  <input type="radio" name="mediaType" value="video" checked={selectedMediaType === "video"} onChange={() => handleMediaTypeChange("video")}/> Video
+                </label>
               </div>
             </div>
 
+            {/* Image Upload */}
             {selectedMediaType === "image" && (
               <div className="row mb-6">
                 <label className="col-lg-4 col-form-label fw-bold fs-6">Upload Banner Image</label>
@@ -613,6 +720,7 @@ export const AddPost = () => {
               </div>
             )}
 
+            {/* Video Upload */}
             {selectedMediaType === "video" && (
               <>
                 <div className="row mb-6">
@@ -663,6 +771,7 @@ export const AddPost = () => {
               </>
             )}
 
+            {/* Description */}
             <div className="row mb-6">
               <label className="col-lg-4 col-form-label fw-bold fs-6">Description</label>
               <div className="col-lg-8 fv-row">
@@ -693,7 +802,7 @@ export const AddPost = () => {
               </div>
             </div>
 
-            {/* Send Notification Section */}
+            {/* Send Notification */}
             <div className="mt-6 mb-6">
               <FormControlLabel
                 control={
@@ -718,12 +827,23 @@ export const AddPost = () => {
 
           <div className="card-footer-button d-flex justify-content-end py-6 px-9">
             <CancelButton />
+            {/* Save Draft button – only when not editing a published post */}
+            {!id && (
+              <button
+                type="button"
+                className="btn btn-secondary me-3"
+                disabled={loading}
+                onClick={() => savePostDraftLocally(formik.values)}
+              >
+                Save Draft
+              </button>
+            )}
             <button
               type="submit"
               className="btn btn-primary"
               disabled={!formik.isValid || loading || formik.isSubmitting}
             >
-              {loading ? "Saving..." : id ? "Update Post" : "Add Post"}
+              {loading ? "Saving..." : id ? "Update Post" : isDraftMode ? "Publish" : "Add Post"}
             </button>
           </div>
         </form>
@@ -731,6 +851,3 @@ export const AddPost = () => {
     </>
   );
 };
-
-
-
