@@ -193,6 +193,10 @@
 // export default PollCard;
 
 
+
+
+
+
 import { useNavigate } from "react-router-dom";
 import { KTIcon } from "../../../_metronic/helpers";
 import { Modal } from "../../../_metronic/partials/widgets/modal/Modal";
@@ -333,7 +337,7 @@ const PollCard: React.FC<PollCardProps> = ({ poll, showEdit = true }) => {
                 <KTIcon iconName="pencil" className="fs-2 text-primary" />
               </a>
             )}
-            {adminUser && (
+            {showEdit && (
               <a
                 onClick={toggleModal}
                 className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline"

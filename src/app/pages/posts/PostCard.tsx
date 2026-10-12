@@ -394,6 +394,8 @@
 
 // export default PostCard;
 
+
+
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { KTIcon } from "../../../_metronic/helpers";
@@ -766,12 +768,19 @@ const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData, showEdit =
 
         <CardActions disableSpacing sx={{ padding: '16px' }}>
           <Stack gap={1}>
-            <Typography variant="caption">Comments: {post?.insights?.noOfComments || 0}</Typography>
-            <Typography variant="caption">Likes: {post?.insights?.noOfLikes || 0}</Typography>
+            <Typography variant="caption">
+              Comments: {post?.insights?.noOfComments || 0}
+            </Typography>
+
+            <Typography variant="caption">
+              Likes: {post?.insights?.noOfLikes || 0}
+            </Typography>
           </Stack>
+
           <div className="d-flex gap-2" style={{ marginLeft: "auto" }}>
-            {/* ✅ Delete button shown only for admin users */}
-            {adminUser && (
+
+            {/* Delete button shown for creator or admin */}
+            {showEdit && (
               <a
                 onClick={(e) => {
                   e.stopPropagation();
@@ -782,7 +791,8 @@ const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData, showEdit =
                 <KTIcon iconName="trash" className="fs-3 text-danger" />
               </a>
             )}
-            {/* Edit button shown only if showEdit is true (creator or admin) */}
+
+            {/* Edit button shown for creator or admin */}
             {showEdit && (
               <a
                 onClick={(e) => {
@@ -794,6 +804,7 @@ const PostCard: React.FC<PostData> = ({ post, pageIndex, refreshData, showEdit =
                 <KTIcon iconName="pencil" className="fs-3 text-primary" />
               </a>
             )}
+
           </div>
         </CardActions>
       </Card>

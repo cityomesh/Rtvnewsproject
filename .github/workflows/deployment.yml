@@ -25,14 +25,14 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
             echo "env_name=prod" >> $GITHUB_OUTPUT
-            echo "target_dir=/home/ubuntu/dashboard_prod" >> $GITHUB_OUTPUT
+            echo "target_dir=/home/omesh/dashboard_prod" >> $GITHUB_OUTPUT
             echo "service=dashboard_prod" >> $GITHUB_OUTPUT
-            echo "VITE_APP_SERVER_URL=https://api.rawtvapp.com/api" > .env
+            echo "VITE_APP_SERVER_URL=http://103.189.178.115:4000/api" > .env
           else
             echo "env_name=dev" >> $GITHUB_OUTPUT
-            echo "target_dir=/home/ubuntu/dashboard_dev" >> $GITHUB_OUTPUT
+            echo "target_dir=/home/omesh/dashboard_dev" >> $GITHUB_OUTPUT
             echo "service=dashboard_dev" >> $GITHUB_OUTPUT
-            echo "VITE_APP_SERVER_URL=https://api.rawtvapp.com/api" > .env
+            echo "VITE_APP_SERVER_URL=http://103.189.178.115:4000/api" > .env
           fi
 
       - name: Install Dependencies & Build
@@ -68,3 +68,4 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           script: |
             sudo systemctl restart ${{ steps.env_select.outputs.service }}
+            

@@ -5,7 +5,12 @@ import { KTIcon } from "../../../_metronic/helpers";
 import { PageTitle } from "../../../_metronic/layout/core";
 import { getCurrentUser } from "../../modules/auth/session";
 
-const DRAFTS_STORAGE_KEY = "post_drafts";
+const getPostDraftsStorageKey = (): string => {
+  const user = getCurrentUser();
+  if (!user) return "post_drafts_anonymous";
+  const identifier = user.username || "unknown";
+  return `post_drafts_${identifier}`;
+};
 
 interface DraftPost {
   id: string;
@@ -20,11 +25,10 @@ interface DraftPost {
 const ViewPostDrafts: React.FC = () => {
   const [drafts, setDrafts] = useState<DraftPost[]>([]);
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "ADMIN";
 
   const loadDrafts = () => {
-    const stored = localStorage.getItem(DRAFTS_STORAGE_KEY);
+    const key = getPostDraftsStorageKey();
+    const stored = localStorage.getItem(key);
     if (stored) {
       setDrafts(JSON.parse(stored));
     } else {
@@ -37,13 +41,10 @@ const ViewPostDrafts: React.FC = () => {
   }, []);
 
   const handleDelete = (id: string) => {
-    if (!isAdmin) {
-      toast.error("Only admin users can delete drafts");
-      return;
-    }
     if (window.confirm("Delete this draft?")) {
+      const key = getPostDraftsStorageKey();
       const updated = drafts.filter((d) => d.id !== id);
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
       setDrafts(updated);
       toast.success("Draft deleted");
     }
@@ -87,15 +88,13 @@ const ViewPostDrafts: React.FC = () => {
                         >
                           <KTIcon iconName="pencil" className="fs-3 text-primary" />
                         </button>
-                        {isAdmin && (
-                          <button
-                            className="btn btn-sm btn-icon btn-light"
-                            onClick={() => handleDelete(draft.id)}
-                            title="Delete draft"
-                          >
-                            <KTIcon iconName="trash" className="fs-3 text-danger" />
-                          </button>
-                        )}
+                        <button
+                          className="btn btn-sm btn-icon btn-light"
+                          onClick={() => handleDelete(draft.id)}
+                          title="Delete draft"
+                        >
+                          <KTIcon iconName="trash" className="fs-3 text-danger" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -105,9 +104,7 @@ const ViewPostDrafts: React.FC = () => {
           )}
         </div>
         <div className="card-footer d-flex justify-content-end py-6 px-9">
-          <button className="btn btn-primary" onClick={() => navigate("/post/create")}>
-            Create New Post
-          </button>
+          <button className="btn btn-primary" onClick={() => navigate("/post/create")}>Create New Post</button>
         </div>
       </div>
     </>

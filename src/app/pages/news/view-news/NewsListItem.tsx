@@ -4,6 +4,7 @@ import { NewsItem } from './NewsTypes';
 import { KTIcon } from '../../../../_metronic/helpers';
 import { toAbsoluteUrl } from '../../../../_metronic/helpers';
 import { getYouTubeVideoId, containsFacebookUrl } from '../../../../utils/GetYoutubeLink';
+import { getCurrentUser } from "../../../modules/auth/session";
 
 interface NewsListItemProps {
   newsItem: NewsItem;
@@ -83,6 +84,13 @@ export const NewsListItem: React.FC<NewsListItemProps> = ({ newsItem, onReadMore
     const [date, time] = findDateTime(newsItem.updatedAt);
     const isDefaultThumbnail = thumbnailUrl === defaultImage;
 
+    const currentUser = getCurrentUser();
+    const isAdminUser = currentUser?.role === "ADMIN";
+    const isOwner = currentUser?.username === (newsItem as any).createdBy;
+
+    const showEditButton = isAdminUser || isOwner;
+    const showDeleteButton = isAdminUser || isOwner;
+
     return (
         <Paper elevation={2} sx={{ display: 'flex', width: '100%', height: '100%' }}>
             <Box
@@ -120,13 +128,26 @@ export const NewsListItem: React.FC<NewsListItemProps> = ({ newsItem, onReadMore
                     )}
                     <Typography variant="body2" color="text.secondary" component="p" sx={{ overflow: "hidden", textOverflow: "ellipsis", WebkitLineClamp: { xs: 2, sm: 3 }, WebkitBoxOrient: "vertical", my: 1,  display: { xs: 'none', sm: '-webkit-box' } }} dangerouslySetInnerHTML={{ __html: newsItem.description }}/>
                 </div>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
-                    <button onClick={onEdit} className="btn btn-sm btn-light btn-color-muted btn-active-light-success px-4 py-2 me-4">
-                      <KTIcon iconName="pencil" className="fs-2 text-primary" />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+
+                {showEditButton && (
+                    <button
+                    onClick={onEdit}
+                    className="btn btn-sm btn-light btn-color-muted btn-active-light-success px-4 py-2 me-4"
+                    >
+                    <KTIcon iconName="pencil" className="fs-2 text-primary" />
                     </button>
-                    <button onClick={onDelete} className="btn btn-sm btn-light btn-color-muted btn-active-light-danger px-4 py-2">
-                      <KTIcon iconName="trash" className="fs-2 text-danger" />
+                )}
+
+                {showDeleteButton && (
+                    <button
+                    onClick={onDelete}
+                    className="btn btn-sm btn-light btn-color-muted btn-active-light-danger px-4 py-2"
+                    >
+                    <KTIcon iconName="trash" className="fs-2 text-danger" />
                     </button>
+                )}
+
                 </Box>
             </Box>
         </Paper>

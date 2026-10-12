@@ -98,6 +98,7 @@
 
 // export { QuizCard };
 
+
 import { FC } from "react";
 import { KTIcon } from "../../../_metronic/helpers";
 import { IQuiz } from "./quiz.tsx";
@@ -180,15 +181,15 @@ const QuizCard: FC<Props> = ({
                     <KTIcon iconName={b1Icon} className="fs-2 text-primary" />
                   </a>
                 )}
-                {button2 && (
-                  <a
-                    onClick={button2}
-                    className="btn btn-bg-light btn-color-danger"
-                    title="Delete"
-                  >
-                    <KTIcon iconName={b2Icon} className="fs-2 text-danger" />
-                  </a>
-                )}
+               {showEdit && button2 && (
+                <a
+                  onClick={button2}
+                  className="btn btn-bg-light btn-color-danger"
+                  title="Delete"
+                >
+                  <KTIcon iconName={b2Icon} className="fs-2 text-danger" />
+                </a>
+              )}
               </div>
             </div>
           </div>

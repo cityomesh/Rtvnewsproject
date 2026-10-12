@@ -5,7 +5,12 @@ import { KTIcon } from "../../../_metronic/helpers";
 import { PageTitle } from "../../../_metronic/layout/core";
 import { getCurrentUser } from "../../modules/auth/session";
 
-const DRAFTS_STORAGE_KEY = "reel_drafts";
+const getReelDraftsStorageKey = (): string => {
+  const user = getCurrentUser();
+  if (!user) return "reel_drafts_anonymous";
+  const identifier = user.username || "unknown";
+  return `reel_drafts_${identifier}`;
+};
 
 interface DraftReel {
   id: string;
@@ -18,11 +23,10 @@ interface DraftReel {
 const ViewReelDrafts: React.FC = () => {
   const [drafts, setDrafts] = useState<DraftReel[]>([]);
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "ADMIN";
 
   const loadDrafts = () => {
-    const stored = localStorage.getItem(DRAFTS_STORAGE_KEY);
+    const key = getReelDraftsStorageKey();
+    const stored = localStorage.getItem(key);
     if (stored) {
       setDrafts(JSON.parse(stored));
     } else {
@@ -35,13 +39,10 @@ const ViewReelDrafts: React.FC = () => {
   }, []);
 
   const handleDelete = (id: string) => {
-    if (!isAdmin) {
-      toast.error("Only admin users can delete drafts");
-      return;
-    }
     if (window.confirm("Delete this draft?")) {
+      const key = getReelDraftsStorageKey();
       const updated = drafts.filter((d) => d.id !== id);
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
       setDrafts(updated);
       toast.success("Draft deleted");
     }
@@ -74,14 +75,20 @@ const ViewReelDrafts: React.FC = () => {
                       <td>{draft.title || "Untitled"}</td>
                       <td>{new Date(draft.createdAt).toLocaleString()}</td>
                       <td>
-                        <button className="btn btn-sm btn-icon btn-light me-2" onClick={() => handleEdit(draft)} title="Edit draft">
+                        <button
+                          className="btn btn-sm btn-icon btn-light me-2"
+                          onClick={() => handleEdit(draft)}
+                          title="Edit draft"
+                        >
                           <KTIcon iconName="pencil" className="fs-3 text-primary" />
                         </button>
-                        {isAdmin && (
-                          <button className="btn btn-sm btn-icon btn-light" onClick={() => handleDelete(draft.id)} title="Delete draft">
-                            <KTIcon iconName="trash" className="fs-3 text-danger" />
-                          </button>
-                        )}
+                        <button
+                          className="btn btn-sm btn-icon btn-light"
+                          onClick={() => handleDelete(draft.id)}
+                          title="Delete draft"
+                        >
+                          <KTIcon iconName="trash" className="fs-3 text-danger" />
+                        </button>
                       </td>
                     </tr>
                   ))}

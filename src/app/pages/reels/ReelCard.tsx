@@ -78,6 +78,18 @@ const ReelCard: React.FC<ReelCardProps> = ({ reel, pageIndex, status }) => {
 
   const reelId = reel?.id;
 
+  const currentUser = getCurrentUser();
+
+  const creators: Record<string, string> = JSON.parse(
+    localStorage.getItem("reel_creators") || "{}"
+  );
+
+  const isOwner =
+    !!reelId &&
+    creators[reelId] === currentUser?.username;
+
+  const isAdmin = currentUser?.role === "ADMIN";
+
   const videoUrl = getVideoUrl(reel);
   const isYouTube = videoUrl ? isYouTubeUrl(videoUrl) : false;
   const isTwitter = videoUrl ? isTwitterUrl(videoUrl) : false;
@@ -428,14 +440,29 @@ const ReelCard: React.FC<ReelCardProps> = ({ reel, pageIndex, status }) => {
 
             {status === "REVIEW_COMPLETE" && (
               <Box sx={{ display: "flex", gap: 1, alignItems: "center", justifyContent: "flex-end", minWidth: 100, flexShrink: 0 }}>
-                {reel?.uploadedBy === "admin" && (
-                  <a onClick={() => navigate(`/reels/create/${reelId}`)} className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline" style={{ backgroundColor: "#FFFFFF00", cursor: "pointer" }} title="Edit Reel">
+                {(isOwner || isAdmin) && (
+                  <a
+                    onClick={() => navigate(`/reels/create/${reelId}`)}
+                    className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline"
+                    style={{ backgroundColor: "#FFFFFF00", cursor: "pointer" }}
+                    title="Edit Reel"
+                  >
                     <KTIcon iconName="pencil" className="fs-2 text-primary" />
                   </a>
                 )}
-                <a onClick={() => { setItemToDelete(reelId); toggleDeleteModal(); }} className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline" style={{ backgroundColor: "#FFFFFF00", cursor: "pointer" }} title="Delete Reel">
-                  <KTIcon iconName="trash" className="fs-2 text-danger" />
-                </a>
+               {(isOwner || isAdmin) && (
+                  <a
+                    onClick={() => {
+                      setItemToDelete(reelId);
+                      toggleDeleteModal();
+                    }}
+                    className="btn btn-bg-light btn-color-danger p-1 btn-icon btn-outline"
+                    style={{ backgroundColor: "#FFFFFF00", cursor: "pointer" }}
+                    title="Delete Reel"
+                  >
+                    <KTIcon iconName="trash" className="fs-2 text-danger" />
+                  </a>
+                )}
               </Box>
             )}
           </Box>

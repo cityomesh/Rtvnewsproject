@@ -5,6 +5,8 @@ import { KTIcon } from "../../../../_metronic/helpers";
 import { NewsItem } from "./NewsTypes";
 import { getYouTubeVideoId, containsFacebookUrl } from "../../../../utils/GetYoutubeLink";
 import { Chip } from "@mui/material";
+import { getCurrentUser } from "../../../modules/auth/session";
+
 
 interface VideoNewsCardProps {
     newsItem: NewsItem;
@@ -60,6 +62,13 @@ export const VideoNewsCard: React.FC<VideoNewsCardProps> = ({ newsItem, onReadMo
         }
     };
 
+    const currentUser = getCurrentUser();
+    const isAdminUser = currentUser?.role === "ADMIN";
+    const isOwner = currentUser?.username === (newsItem as any).createdBy;
+
+    const showEditButton = isAdminUser || isOwner;
+    const showDeleteButton = isAdminUser || isOwner;
+
     return (
         <div className="p-5 w-100">
             <div className="d-flex flex-column mb-3" onClick={onReadMore} style={{ cursor: 'pointer' }}>
@@ -100,12 +109,23 @@ export const VideoNewsCard: React.FC<VideoNewsCardProps> = ({ newsItem, onReadMo
                 </div>
             )}
             <div className="d-flex align-items-center justify-content-center">
-                <button onClick={onEdit} className="btn btn-sm btn-light btn-color-muted btn-active-light-success px-4 py-2 me-4">
+                {showEditButton && (
+                    <button
+                    onClick={onEdit}
+                    className="btn btn-sm btn-light btn-color-muted btn-active-light-success px-4 py-2 me-4"
+                    >
                     <KTIcon iconName="pencil" className="fs-2 text-primary" />
-                </button>
-                <button onClick={onDelete} className="btn btn-sm btn-light btn-color-muted btn-active-light-danger px-4 py-2">
+                    </button>
+                )}
+
+                {showDeleteButton && (
+                    <button
+                    onClick={onDelete}
+                    className="btn btn-sm btn-light btn-color-muted btn-active-light-danger px-4 py-2"
+                    >
                     <KTIcon iconName="trash" className="fs-2 text-danger" />
-                </button>
+                    </button>
+                )}
             </div>
         </div>
     );

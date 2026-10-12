@@ -5,7 +5,12 @@ import { KTIcon } from "../../../_metronic/helpers";
 import { PageTitle } from "../../../_metronic/layout/core";
 import { getCurrentUser } from "../../modules/auth/session";
 
-const DRAFTS_STORAGE_KEY = "quiz_drafts";
+const getQuizDraftsStorageKey = (): string => {
+  const user = getCurrentUser();
+  if (!user) return "quiz_drafts_anonymous";
+  const identifier = user.username || "unknown";
+  return `quiz_drafts_${identifier}`;
+};
 
 interface DraftQuiz {
   id: string;
@@ -20,11 +25,10 @@ interface DraftQuiz {
 const ViewQuizDrafts: React.FC = () => {
   const [drafts, setDrafts] = useState<DraftQuiz[]>([]);
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "ADMIN";
 
   const loadDrafts = () => {
-    const stored = localStorage.getItem(DRAFTS_STORAGE_KEY);
+    const key = getQuizDraftsStorageKey();
+    const stored = localStorage.getItem(key);
     if (stored) {
       setDrafts(JSON.parse(stored));
     } else {
@@ -37,13 +41,10 @@ const ViewQuizDrafts: React.FC = () => {
   }, []);
 
   const handleDelete = (id: string) => {
-    if (!isAdmin) {
-      toast.error("Only admin users can delete drafts");
-      return;
-    }
     if (window.confirm("Delete this draft?")) {
+      const key = getQuizDraftsStorageKey();
       const updated = drafts.filter((d) => d.id !== id);
-      localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
       setDrafts(updated);
       toast.success("Draft deleted");
     }
@@ -56,20 +57,14 @@ const ViewQuizDrafts: React.FC = () => {
 
   return (
     <>
-      <PageTitle description="" breadcrumbs={[]}>
-        Quiz Drafts
-      </PageTitle>
-
+      <PageTitle description="" breadcrumbs={[]}>Quiz Drafts</PageTitle>
       <div className="card mb-5 mb-xl-10">
         <div className="card-header border-0">
           <h3 className="fw-bolder m-0 my-5">Local Quiz Drafts (not published)</h3>
         </div>
-
         <div className="card-body border-top p-9">
           {drafts.length === 0 ? (
-            <p>
-              No quiz drafts found. Create a quiz and click "Save Draft" to store a draft locally.
-            </p>
+            <p>No quiz drafts found. Create a quiz and click "Save Draft" to store a draft locally.</p>
           ) : (
             <div className="table-responsive">
               <table className="table table-row-bordered table-row-gray-300 gy-5">
@@ -97,15 +92,13 @@ const ViewQuizDrafts: React.FC = () => {
                         >
                           <KTIcon iconName="pencil" className="fs-3 text-primary" />
                         </button>
-                        {isAdmin && (
-                          <button
-                            className="btn btn-sm btn-icon btn-light"
-                            onClick={() => handleDelete(draft.id)}
-                            title="Delete draft"
-                          >
-                            <KTIcon iconName="trash" className="fs-3 text-danger" />
-                          </button>
-                        )}
+                        <button
+                          className="btn btn-sm btn-icon btn-light"
+                          onClick={() => handleDelete(draft.id)}
+                          title="Delete draft"
+                        >
+                          <KTIcon iconName="trash" className="fs-3 text-danger" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -114,14 +107,8 @@ const ViewQuizDrafts: React.FC = () => {
             </div>
           )}
         </div>
-
         <div className="card-footer d-flex justify-content-end py-6 px-9">
-          <button
-            className="btn btn-primary"
-            onClick={() => navigate("/quiz/create")}
-          >
-            Create New Quiz
-          </button>
+          <button className="btn btn-primary" onClick={() => navigate("/quiz/create")}>Create New Quiz</button>
         </div>
       </div>
     </>

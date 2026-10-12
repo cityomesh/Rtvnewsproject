@@ -175,6 +175,7 @@ const ViewAllQuiz = () => {
           {quizes.map((quiz) => {
             const id = quiz.id;
             const showEdit = canEdit(id);
+
             return (
               <div
                 className="col-12 col-sm-12 col-md-12 col-lg-12 col-xl-12"
@@ -182,8 +183,16 @@ const ViewAllQuiz = () => {
               >
                 <QuizCard
                   quiz={quiz}
-                  button1={showEdit ? () => navigate(`/quiz/create/${id}`) : undefined}
-                  button2={adminUser ? () => handleDeleteClick(id) : undefined}
+                  button1={
+                    showEdit
+                      ? () => navigate(`/quiz/create/${id}`)
+                      : undefined
+                  }
+                  button2={
+                    showEdit
+                      ? () => handleDeleteClick(id)
+                      : undefined
+                  }
                   showEdit={showEdit}
                   id={id}
                   activeId={activeId}
