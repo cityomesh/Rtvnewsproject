@@ -130,3 +130,4 @@ export const VideoNewsCard: React.FC<VideoNewsCardProps> = ({ newsItem, onReadMo
         </div>
     );
  };
+ 

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import React, { useEffect } from 'react';
 import {
   Box,
@@ -8,7 +6,7 @@ import {
   Typography,
   Paper,
   useTheme,
-  FormControl
+  FormControl,
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import OutlinedInput from '@mui/material/OutlinedInput';
@@ -35,12 +33,10 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) =>
     event.preventDefault();
-  };
-  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) =>
     event.preventDefault();
-  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -61,100 +57,73 @@ const Login: React.FC = () => {
     onSubmit: async (values, { setSubmitting, setErrors }) => {
       console.log('Login attempt:', values.phoneNumber);
 
-      // ---------- STEP 1: Admin (rocky) API login ----------
-      if (values.phoneNumber === 'rocky' && values.password === 'rawtv') {
-        try {
-          // Send phoneNumber field (not username)
-          const response = await client.post('auth/login', {
-            phoneNumber: values.phoneNumber,
-            password: values.password,
-          });
-          if (response.status === 200) {
-            const authToken = response.headers['jwt-token'] || response.headers['Jwt-Token'];
-            if (authToken) {
-              localStorage.setItem('token', authToken);
-              localStorage.setItem('admin_token', authToken);
-              setToken(authToken);
-              setAuth({ api_token: authToken });
-              setCurrentUser({
-                username: 'rocky',
-                role: 'ADMIN',
-                name: 'Rocky',
-              });
-              toast.success('Welcome Admin!');
-              navigate('/dashboard');
-              setSubmitting(false);
-              return;
-            }
+      try {
+        // ✅ ALWAYS call backend API
+        const response = await client.post('auth/login', {
+          phoneNumber: values.phoneNumber,
+          password: values.password,
+        });
+
+        if (response.status === 200) {
+          // Extract JWT token
+          const authToken =
+            response.headers['jwt-token'] ||
+            response.headers['Jwt-Token'] ||
+            response.headers['authorization'];
+
+          if (!authToken) {
+            toast.error('Login failed: No token received');
+            setSubmitting(false);
+            return;
           }
-        } catch (err) {
-          console.error('Admin login error:', err);
-        }
-        // Fallback: already stored admin token
-        const existingAdminToken = localStorage.getItem('admin_token');
-        if (existingAdminToken) {
-          localStorage.setItem('token', existingAdminToken);
-          setToken(existingAdminToken);
-          setAuth({ api_token: existingAdminToken });
+
+          const userData = response.data || {};
+
+          // ✅ Use backend `role` field directly
+          const role = (userData.role || 'USER').toUpperCase();
+
+          // Save token + user
+          localStorage.setItem('token', authToken);
+          setToken(authToken);
+          setAuth({ api_token: authToken });
           setCurrentUser({
-            username: 'rocky',
-            role: 'ADMIN',
-            name: 'Rocky',
+            username: userData.phoneNumber || userData.name || values.phoneNumber,
+            role: role,
+            name: userData.name || userData.phoneNumber || values.phoneNumber,
           });
-          toast.success('Welcome Admin!');
+
+          console.log('✅ Login success:', {
+            username: userData.phoneNumber,
+            role: role,
+            rawRole: userData.role,
+          });
+
+          toast.success(
+            `Welcome ${userData.name || userData.phoneNumber || ''}!`
+          );
           navigate('/dashboard');
           setSubmitting(false);
           return;
         }
-        toast.error('Admin login failed');
-        setErrors({ password: 'Admin login failed' });
+
+        toast.error('Login failed');
         setSubmitting(false);
-        return;
-      }
+      } catch (err: any) {
+        console.error('Login error:', err);
 
-      // ---------- STEP 2: Normal user (localStorage) with STATUS CHECK ----------
-      const storedUsers = localStorage.getItem('app_users');
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
-      const foundUser = users.find(
-        (u: any) => u.phoneNumber === values.phoneNumber && u.password === values.password
-      );
-
-      if (foundUser) {
-        // ✅ CHECK USER STATUS
-        const userStatus = foundUser.status || 'ACTIVE'; // default to ACTIVE if no status field
-        if (userStatus !== 'ACTIVE') {
-          console.log(`Login blocked: User ${foundUser.phoneNumber} is ${userStatus}`);
+        const status = err?.response?.status;
+        if (status === 401) {
+          toast.error('Invalid Credentials!');
+          setErrors({ password: 'Invalid Credentials' });
+        } else if (status === 403) {
           toast.error('Your account is deactivated. Please contact admin.');
           setErrors({ password: 'Account deactivated' });
-          setSubmitting(false);
-          return;
+        } else {
+          toast.error('Login failed. Please try again.');
+          setErrors({ password: 'Login failed' });
         }
-
-        console.log('Normal user found and ACTIVE:', foundUser);
-        const adminToken = localStorage.getItem('admin_token');
-        if (!adminToken) {
-          toast.error('Please login as admin (rocky) at least once first.');
-          setErrors({ password: 'Admin not initialized' });
-          setSubmitting(false);
-          return;
-        }
-        localStorage.setItem('token', adminToken);
-        setToken(adminToken);
-        setAuth({ api_token: adminToken });
-        setCurrentUser({
-          username: foundUser.phoneNumber,
-          role: foundUser.role?.toUpperCase() || 'USER',
-          name: foundUser.name || foundUser.phoneNumber,
-        });
-        toast.success(`Welcome ${foundUser.name || foundUser.phoneNumber}!`);
-        navigate('/dashboard');
         setSubmitting(false);
-        return;
       }
-
-      toast.error('Invalid Credentials!');
-      setErrors({ password: 'Invalid Credentials' });
-      setSubmitting(false);
     },
   });
 
@@ -195,8 +164,12 @@ const Login: React.FC = () => {
             value={formik.values.phoneNumber}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
-            error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
-            helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
+            error={
+              formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)
+            }
+            helperText={
+              formik.touched.phoneNumber && formik.errors.phoneNumber
+            }
           />
 
           <FormControl variant="outlined" fullWidth margin="normal">
@@ -223,6 +196,7 @@ const Login: React.FC = () => {
               label="Password"
             />
           </FormControl>
+
           <Button
             type="submit"
             fullWidth
@@ -237,8 +211,8 @@ const Login: React.FC = () => {
 
         <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
           <Typography variant="caption" display="block" color="textSecondary">
-            <strong>Note:</strong> Admin (rocky) must login first. Then created users can login and create news. <br />
-            <strong>Deactivated accounts cannot login.</strong>
+            <strong>Note:</strong> Any active user can login. Deactivated
+            accounts cannot login.
           </Typography>
         </Box>
       </Paper>
